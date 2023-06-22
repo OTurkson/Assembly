@@ -1,0 +1,160 @@
+section .data
+    random_range db 10  ; Range of random numbers (0-9)
+    random_num db 0     ; Random number generated
+    user_guess db 0     ; User's guess
+    level db 0          ; Current level
+
+    msg_welcome db 'Welcome to the Number Guessing Game!', 0Ah
+                db 'Please select a level of difficulty:', 0Ah
+                db '1. Easy', 0Ah
+                db '2. Medium', 0Ah
+                db '3. Hard', 0Ah
+                db 'Your choice: ', 0
+
+    msg_congrats db 'Congratulations! You guessed the number correctly.', 0Ah
+    msg_lower db 'Too low!', 0Ah
+    msg_higher db 'Too high!', 0Ah
+    msg_guess db 'Enter your guess (0-9): ', 0
+    msg_try_again db 'Try again.', 0Ah
+    msg_level_up db 'Congratulations! You have completed the current level.', 0Ah
+
+section .text
+    global _start
+
+_start:
+    ; Print welcome message and ask for level selection
+    mov rax, 1
+    mov rdi, 1
+    mov rsi, msg_welcome
+    mov rdx, 48
+    syscall
+
+    ; Read user's level choice
+    mov rax, 0
+    mov rdi, 0
+    mov rsi, level
+    mov rdx, 1
+    syscall
+
+    ; Convert level choice to number
+    sub byte [level], '0'
+
+    ; Generate random number based on level choice
+    movzx eax, byte [level]
+    imul eax, 10
+    add eax, 1
+    mov byte [random_range], al
+    mov eax, 0x4c534c42
+    xor edi, edi
+    xor edx, edx
+    rdtsc
+    xor byte [random_num], dl
+    and byte [random_num], al
+
+    ; Game loop
+game_loop:
+    ; Print guess prompt
+    mov rax, 1
+    mov rdi, 1
+    mov rsi, msg_guess
+    mov rdx, 20
+    syscall
+
+    ; Read user's guess
+    mov rax, 0
+    mov rdi, 0
+    mov rsi, user_guess
+    mov rdx, 1
+    syscall
+
+    ; Check if guess is correct
+    cmp byte [user_guess], byte [random_num]
+    je guess_correct
+
+    ; Check if guess is too low
+    cmp byte [user_guess], byte [random_num]
+    jl guess_low
+
+    ; Guess is too high
+    mov rax, 1
+    mov rdi, 1
+    mov rsi, msg_higher
+    mov rdx, 9
+    syscall
+
+    ; Try again
+    jmp game_loop
+
+guess_low:
+    ; Guess is too low
+    mov rax, 1
+    mov rdi, 1
+    mov rsi, msg_lower
+    mov rdx, 8
+    syscall
+
+    ; Try again
+    jmp game_loop
+
+guess_correct:
+    ; Print congratulations message
+    mov rax, 1
+    mov rdi, 1
+    mov rsi, msg_congrats
+    mov rdx, 39
+    syscall
+
+    ; Check if current level is the last level (hard)
+    cmp byte [level], 2
+    je game_over
+
+    ; Level up
+    mov rax, 1
+    mov rdi, 1
+    mov rsi, msg_level_up
+    mov rdx, 38
+    syscall
+
+    ; Increase level
+    inc byte [level]
+
+    ; Generate new random number based on level choice
+    movzx eax, byte [level]
+    imul eax, 10
+    add eax, 1
+    mov byte [random_range], al
+    mov eax, 0x4c534c42
+    xor edi, edi
+    xor edx, edx
+    rdtsc
+    xor byte [random_num], dl
+    and byte [random_num], al
+
+    ; Try again in the new level
+    jmp game_loop
+
+game_over:
+    ; Game over message
+    mov rax, 1
+    mov rdi, 1
+    mov rsi, msg_try_again
+    mov rdx, 14
+    syscall
+
+    ; Reset level to 0 (easy)
+    mov byte [level], 0
+
+    ; Generate new random number based on level choice
+    movzx eax, byte [level]
+    imul eax, 10
+    add eax, 1
+    mov byte [random_range], al
+    mov eax, 0x4c534c42
+    xor edi, edi
+    xor edx, edx
+    rdtsc
+    xor byte [random_num], dl
+    and byte [random_num], al
+
+    ; Try again in the new level
+    jmp game_loop
